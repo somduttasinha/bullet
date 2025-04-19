@@ -11,7 +11,7 @@
 constexpr int PORT = 3232;
 constexpr int BUFFER_SIZE = 1024;
 constexpr const char *WELCOME_MESSAGE = "Hello!\n";
-constexpr const char *GOODBYE_MESSAGE = "Bye!\n";
+constexpr const char *GOODBYE_MESSAGE = "Bye!";
 
 #define handle_error(msg)                                                      \
   do {                                                                         \
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   int on = 1;
   int c;
 
-  void *buf = malloc(1024);
+  char *buf = (char *)malloc(BUFFER_SIZE);
 
   int s = socket(PF_INET, SOCK_STREAM,
                  0); // protocol is 0 so one is chosen automatically
@@ -42,7 +42,6 @@ int main(int argc, char *argv[]) {
   serverSa.sin_addr.s_addr = htonl(INADDR_ANY);
   serverSa.sin_port = htons(PORT);
   rc = bind(s, (struct sockaddr *)&serverSa, sizeof(serverSa));
-  printf("The file descriptor for the listening socket is %d\n", s);
   if (rc < 0) {
     handle_error("failed to bind");
   }
@@ -60,8 +59,6 @@ int main(int argc, char *argv[]) {
     if (rc < 0) {
       perror("accept failed");
       exit(1);
-    } else {
-      printf("The file descriptor for this specific connection is %d\n", rc);
     }
 
     printf("Client address is: %s:%d\n", inet_ntoa(clientSa.sin_addr),
@@ -71,20 +68,20 @@ int main(int argc, char *argv[]) {
     rc = write(c, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
 
     while (1) {
-      int read_bytes = read(c, (void *)buf, sizeof buf);
-      printf("<-- %s\n", (char *)buf);
-      printf("--> %s\n", (char *)buf);
+      memset(buf, 0, BUFFER_SIZE);
+      int read_bytes = read(c, buf, BUFFER_SIZE - 1);
+      printf("<-- %s\n", buf);
+      printf("--> %s\n", buf);
       write(c, buf, read_bytes);
-      if (strncmp((char *)buf, GOODBYE_MESSAGE, 1) == 0) {
+      if (strncmp((char *)buf, GOODBYE_MESSAGE, strlen(GOODBYE_MESSAGE)) == 0) {
         printf("Goodbye received from client!\n");
+        close(c);
+        printf("Closed socket for client\n");
         break;
       }
-      memset(buf, 0, 1024); // refresh buffer to 0
     }
-
-    printf("Closing socket for client");
-    close(c);
   }
+
   free(buf);
   shutdown(s, SHUT_RDWR);
   close(s);
