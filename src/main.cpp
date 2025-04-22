@@ -8,7 +8,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <thread>
 #include <unistd.h>
 
 constexpr int PORT = 3232;
@@ -18,35 +17,41 @@ constexpr const char *WELCOME_MESSAGE = "Hello!\n";
 constexpr const char *GOODBYE_MESSAGE = "Bye!";
 constexpr const int MAX_EVENTS = 10;
 
-#define handle_error(msg)                                                      \
-  do {                                                                         \
-    perror(msg);                                                               \
-    exit(EXIT_FAILURE);                                                        \
-  } while (0);
-
-void listening_thread(int *socket_fd) { auto x = *socket_fd; }
-
-int do_something_with_fd(int _fd) {
-  printf("Doing something with this fd:%d\n", _fd);
-  return 0;
+[[noreturn]] void handle_error(const char *msg) {
+  perror(msg);
+  exit(EXIT_FAILURE);
 }
 
-int handle_connection(int c) {
-  char *buf = (char *)malloc(BUFFER_SIZE);
-  while (1) {
-    memset(buf, 0, BUFFER_SIZE);
-    int read_bytes = read(c, buf, BUFFER_SIZE - 1);
-    printf("<-- %s\n", buf);
-    printf("--> %s\n", buf);
-    write(c, buf, read_bytes);
-    if (strncmp((char *)buf, GOODBYE_MESSAGE, strlen(GOODBYE_MESSAGE)) == 0) {
-      printf("Goodbye received from client!\n");
-      close(c);
-      printf("Closed socket for client\n");
-      break;
-    }
+int handle_socket(int epoll_fd, int socket_fd) {
+
+  char buf[BUFFER_SIZE]; // stack-allocated as this is cheaper than requesting
+  // heap memory
+  int rc;
+  int nbytes_read = read(socket_fd, buf, BUFFER_SIZE);
+  if (nbytes_read <= 0) {
+    handle_error("Error with reading bytes");
   }
-  free(buf);
+
+  if (strncmp(buf, GOODBYE_MESSAGE, strlen(GOODBYE_MESSAGE)) == 0) {
+    rc = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+    if (rc == -1) {
+      handle_error("Failed to delete socket fd from epoll");
+    }
+    rc = shutdown(socket_fd, SHUT_RDWR);
+    if (rc == -1) {
+      handle_error("Failed to shut down socket");
+    }
+    rc = close(socket_fd);
+    if (rc == -1) {
+      handle_error("Failed to close socket");
+    }
+    return 0;
+  }
+
+  rc = write(socket_fd, buf, nbytes_read);
+  if (rc == -1) {
+    handle_error("Issue with writing to socket");
+  }
   return 0;
 }
 
@@ -75,7 +80,6 @@ int main(int argc, char *argv[]) {
   int rc;
   socklen_t clientSaSize = sizeof(clientSa);
   int on = 1;
-  int c;
   int listen_sock, conn_sock;
 
   // variables for epoll
@@ -130,7 +134,7 @@ int main(int argc, char *argv[]) {
   // listen_sock file descriptor
 
   if (rc == -1) {
-    handle_error("Failed to register file descriptor with epoll")
+    handle_error("Failed to register file descriptor with epoll");
   }
 
   // main function loop
@@ -146,14 +150,12 @@ int main(int argc, char *argv[]) {
       if (events[n].data.fd == listen_sock) {
         conn_sock =
             accept(listen_sock, (struct sockaddr *)&clientSa, &clientSaSize);
+        rc = write(conn_sock, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
 
         if (conn_sock < 0) {
           perror("accept failed");
           exit(1);
         }
-
-        printf("Client address is: %s:%d\n", inet_ntoa(clientSa.sin_addr),
-               clientSa.sin_port);
 
         setnonblocking(conn_sock);
         ev.events = EPOLLIN | EPOLLET; // edge triggered
@@ -165,14 +167,9 @@ int main(int argc, char *argv[]) {
               "Failed to register connection socket in epoll instance");
         }
       } else {
-        do_something_with_fd(events[n].data.fd);
+        handle_socket(epoll_fd, events[n].data.fd);
       }
     }
-
-    c = rc;
-    rc = write(c, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
-
-    std::thread client_thread(handle_connection, c);
   }
 
   shutdown(listen_sock, SHUT_RDWR);
