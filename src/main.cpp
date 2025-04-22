@@ -27,7 +27,7 @@ constexpr const int MAX_EVENTS = 10;
 void listening_thread(int *socket_fd) { auto x = *socket_fd; }
 
 int do_something_with_fd(int _fd) {
-  printf("yebro doing something with this fd:%d\n", _fd);
+  printf("Doing something with this fd:%d\n", _fd);
   return 0;
 }
 
