@@ -1,20 +1,31 @@
+#include "http/HttpParser.hpp"
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <iostream>
 #include <netinet/in.h>
+#include <ostream>
+#include <string>
+#include <string_view>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unordered_map>
+#include "utils/Utils.hpp"
 
 constexpr int PORT = 3232;
 constexpr int BUFFER_SIZE = 1024;
 constexpr int POOL_SIZE = 10;
-constexpr const char *WELCOME_MESSAGE = "Hello!\n";
-constexpr const char *GOODBYE_MESSAGE = "Bye!";
+constexpr const std::string_view WELCOME_MESSAGE = "Hello!\n";
+constexpr const std::string_view GOODBYE_MESSAGE = "Bye!";
+constexpr const std::string_view PLAIN_HTTP =
+    "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: "
+    "close\r\n\r\nHello "
+    "from som\n";
 constexpr const int MAX_EVENTS = 10;
 
 [[noreturn]] void handle_error(const char *msg) {
@@ -27,31 +38,40 @@ int handle_socket(int epoll_fd, int socket_fd) {
   char buf[BUFFER_SIZE]; // stack-allocated as this is cheaper than requesting
   // heap memory
   int rc;
-  int nbytes_read = read(socket_fd, buf, BUFFER_SIZE);
-  if (nbytes_read <= 0) {
+  int nbytes_read = read(socket_fd, buf, BUFFER_SIZE - 1);
+
+  if (nbytes_read < 0) {
     handle_error("Error with reading bytes");
   }
 
-  if (strncmp(buf, GOODBYE_MESSAGE, strlen(GOODBYE_MESSAGE)) == 0) {
-    rc = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
-    if (rc == -1) {
-      handle_error("Failed to delete socket fd from epoll");
-    }
-    rc = shutdown(socket_fd, SHUT_RDWR);
-    if (rc == -1) {
-      handle_error("Failed to shut down socket");
-    }
-    rc = close(socket_fd);
-    if (rc == -1) {
-      handle_error("Failed to close socket");
-    }
-    return 0;
-  }
+  buf[nbytes_read] = '\0';
 
-  rc = write(socket_fd, buf, nbytes_read);
+  HttpParser parser;
+
+  const std::unordered_map<std::string, std::string> headers =
+      parser.parse(buf);
+
+  printMap(headers);
+
+  rc = write(socket_fd, PLAIN_HTTP.data(), PLAIN_HTTP.size());
+
   if (rc == -1) {
     handle_error("Issue with writing to socket");
   }
+  std::cout << "Terminating connection from our side" << std::endl;
+  rc = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
+  if (rc == -1) {
+    handle_error("Failed to delete socket fd from epoll");
+  }
+  rc = shutdown(socket_fd, SHUT_RDWR);
+  if (rc == -1) {
+    handle_error("Failed to shut down socket");
+  }
+  rc = close(socket_fd);
+  if (rc == -1) {
+    handle_error("Failed to close socket");
+  }
+
   return 0;
 }
 
@@ -150,7 +170,9 @@ int main(int argc, char *argv[]) {
       if (events[n].data.fd == listen_sock) {
         conn_sock =
             accept(listen_sock, (struct sockaddr *)&clientSa, &clientSaSize);
-        rc = write(conn_sock, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
+        printf("Client address: %s:%d\n", inet_ntoa(clientSa.sin_addr),
+               clientSa.sin_port); // print the client address
+        // rc = write(conn_sock, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
 
         if (conn_sock < 0) {
           perror("accept failed");
