@@ -1,3 +1,4 @@
+#include "http/HttpMessage.hpp"
 #include "http/HttpParser.hpp"
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
@@ -48,10 +49,10 @@ int handle_socket(int epoll_fd, int socket_fd) {
 
   HttpParser parser;
 
-  const std::unordered_map<std::string, std::string> headers =
+  HttpMessage message =
       parser.parse(buf);
 
-  printMap(headers);
+  // printMap(headers);
 
   rc = write(socket_fd, PLAIN_HTTP.data(), PLAIN_HTTP.size());
 
@@ -75,6 +76,12 @@ int handle_socket(int epoll_fd, int socket_fd) {
   return 0;
 }
 
+/**
+* Converts a socket to non-blocking mode.
+*
+* @param sock Socket file descriptor
+* @return The file access mode
+*/
 int setnonblocking(int sock) {
   int result;
   int flags;
