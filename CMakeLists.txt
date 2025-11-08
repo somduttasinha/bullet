@@ -16,6 +16,7 @@ add_compile_options(-Wall -Werror)
 # Create a library with all non-main source files
 add_library(bullet_lib
     src/http/HttpParser.cpp
+    src/http/HttpMessage.cpp
     # Add more .cpp files here as your project grows
 )
 

@@ -2,23 +2,19 @@
 #include "http/HttpParser.hpp"
 #include <gtest/gtest.h>
 #include <stdexcept>
-#include <variant>
 
 // Test basic GET request
 TEST(HttpParserTest, ParseSimpleGetRequest) {
   HttpParser parser;
   std::string raw = "GET /index.html HTTP/1.1\r\n\r\n";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-  RequestLine req = std::get<RequestLine>(msg.start_line);
-
-  EXPECT_EQ(req.method, Method::GET);
-  EXPECT_EQ(req.request_uri, "/index.html");
-  EXPECT_EQ(req.http_version, HTTPVersion::HTTP1x1);
-  EXPECT_TRUE(msg.headers.empty());
-  EXPECT_FALSE(msg.body.has_value());
+  EXPECT_EQ(req.getMethod(), Method::GET);
+  EXPECT_EQ(req.getRequestURI(), "/index.html");
+  EXPECT_EQ(req.getHttpVersion(), HTTPVersion::HTTP1x1);
+  EXPECT_TRUE(req.getHeaders().empty());
+  EXPECT_FALSE(req.hasBody());
 }
 
 // Test GET request with headers
@@ -30,22 +26,19 @@ TEST(HttpParserTest, ParseGetRequestWithHeaders) {
                     "Accept: application/json\r\n"
                     "\r\n";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-  RequestLine req = std::get<RequestLine>(msg.start_line);
+  EXPECT_EQ(req.getMethod(), Method::GET);
+  EXPECT_EQ(req.getRequestURI(), "/api/users");
+  EXPECT_EQ(req.getHttpVersion(), HTTPVersion::HTTP1x1);
 
-  EXPECT_EQ(req.method, Method::GET);
-  EXPECT_EQ(req.request_uri, "/api/users");
-  EXPECT_EQ(req.http_version, HTTPVersion::HTTP1x1);
-
-  ASSERT_EQ(msg.headers.size(), 3);
-  EXPECT_EQ(msg.headers[0].first, "Host");
-  EXPECT_EQ(msg.headers[0].second, "example.com");
-  EXPECT_EQ(msg.headers[1].first, "User-Agent");
-  EXPECT_EQ(msg.headers[1].second, "Mozilla/5.0");
-  EXPECT_EQ(msg.headers[2].first, "Accept");
-  EXPECT_EQ(msg.headers[2].second, "application/json");
+  ASSERT_EQ(req.getHeaders().size(), 3);
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Host");
+  EXPECT_EQ(req.getHeaders()[0].second, "example.com");
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "User-Agent");
+  EXPECT_EQ(req.getHeaders()[1].second, "Mozilla/5.0");
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[2].first), "Accept");
+  EXPECT_EQ(req.getHeaders()[2].second, "application/json");
 }
 
 // Test POST request with body
@@ -58,18 +51,15 @@ TEST(HttpParserTest, ParsePostRequestWithBody) {
                     "\r\n"
                     "{\"user\":\"test\",\"pass\":\"123\"}";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-  RequestLine req = std::get<RequestLine>(msg.start_line);
+  EXPECT_EQ(req.getMethod(), Method::POST);
+  EXPECT_EQ(req.getRequestURI(), "/api/login");
 
-  EXPECT_EQ(req.method, Method::POST);
-  EXPECT_EQ(req.request_uri, "/api/login");
+  ASSERT_EQ(req.getHeaders().size(), 3);
 
-  ASSERT_EQ(msg.headers.size(), 3);
-
-  ASSERT_TRUE(msg.body.has_value());
-  EXPECT_EQ(msg.body.value(), "{\"user\":\"test\",\"pass\":\"123\"}");
+  ASSERT_TRUE(req.hasBody());
+  EXPECT_EQ(req.getBody().value(), "{\"user\":\"test\",\"pass\":\"123\"}");
 }
 
 // Test all HTTP methods
@@ -84,12 +74,9 @@ TEST(HttpParserTest, ParseAllHttpMethods) {
     HttpParser parser;
     std::string raw = method_str + " / HTTP/1.1\r\n\r\n";
 
-    HttpMessage msg = parser.parse(raw);
+    HttpRequest req = parser.parse(raw);
 
-    ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-    RequestLine req = std::get<RequestLine>(msg.start_line);
-
-    EXPECT_EQ(req.method, expected_method)
+    EXPECT_EQ(req.getMethod(), expected_method)
         << "Failed for method: " << method_str;
   }
 }
@@ -102,13 +89,13 @@ TEST(HttpParserTest, ParseHeaderWithWhitespace) {
                     "Accept:application/json\r\n"
                     "\r\n";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_EQ(msg.headers.size(), 2);
-  EXPECT_EQ(msg.headers[0].first, "Host");
-  EXPECT_EQ(msg.headers[0].second, "example.com");
-  EXPECT_EQ(msg.headers[1].first, "Accept");
-  EXPECT_EQ(msg.headers[1].second, "application/json");
+  ASSERT_EQ(req.getHeaders().size(), 2);
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Host");
+  EXPECT_EQ(req.getHeaders()[0].second, "example.com");
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "Accept");
+  EXPECT_EQ(req.getHeaders()[1].second, "application/json");
 }
 
 // Test duplicate headers (e.g., Cookie)
@@ -120,15 +107,15 @@ TEST(HttpParserTest, ParseDuplicateHeaders) {
                     "Cookie: token=123\r\n"
                     "\r\n";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_EQ(msg.headers.size(), 3);
-  EXPECT_EQ(msg.headers[0].first, "Cookie");
-  EXPECT_EQ(msg.headers[0].second, "session=abc");
-  EXPECT_EQ(msg.headers[1].first, "Cookie");
-  EXPECT_EQ(msg.headers[1].second, "user=xyz");
-  EXPECT_EQ(msg.headers[2].first, "Cookie");
-  EXPECT_EQ(msg.headers[2].second, "token=123");
+  ASSERT_EQ(req.getHeaders().size(), 3);
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Cookie");
+  EXPECT_EQ(req.getHeaders()[0].second, "session=abc");
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "Cookie");
+  EXPECT_EQ(req.getHeaders()[1].second, "user=xyz");
+  EXPECT_EQ(std::get<std::string>(req.getHeaders()[2].first), "Cookie");
+  EXPECT_EQ(req.getHeaders()[2].second, "token=123");
 }
 
 // Test different URI formats
@@ -147,12 +134,9 @@ TEST(HttpParserTest, ParseDifferentUriFormats) {
     HttpParser parser;
     std::string raw = "GET " + uri + " HTTP/1.1\r\n\r\n";
 
-    HttpMessage msg = parser.parse(raw);
+    HttpRequest req = parser.parse(raw);
 
-    ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-    RequestLine req = std::get<RequestLine>(msg.start_line);
-
-    EXPECT_EQ(req.request_uri, uri) << "Failed for URI: " << uri;
+    EXPECT_EQ(req.getRequestURI(), uri) << "Failed for URI: " << uri;
   }
 }
 
@@ -197,8 +181,7 @@ TEST(HttpParserTest, RequestWithNoBody) {
                     "Host: example.com\r\n"
                     "\r\n";
 
-  HttpMessage msg = parser.parse(raw);
+  HttpRequest req = parser.parse(raw);
 
-  ASSERT_TRUE(std::holds_alternative<RequestLine>(msg.start_line));
-  EXPECT_FALSE(msg.body.has_value());
+  EXPECT_FALSE(req.hasBody());
 }
