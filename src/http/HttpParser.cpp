@@ -36,7 +36,7 @@ HttpMessage HttpParser::parse(const std::string &raw) {
       break;
     }
     case State::PARSING_HEADERS: {
-      auto headers = std::vector<std::pair<std::string, std::string>>();
+      auto headers = std::vector<std::pair<Header, std::string>>();
       // we need to keep going until we find two consecutive CRLFs
       while (true) {
         size_t header_line_size = raw.find(CRLF, pos_);
@@ -148,7 +148,7 @@ HTTPVersion HttpParser::parseVersion(const std::string &version_str) {
 /// LWS            = [CRLF] 1*( SP | HT )
 /// SP             = <US-ASCII SP, space (32)>
 /// HT             = <US-ASCII HT, horizontal-tab (9)>
-std::pair<std::string, std::string>
+std::pair<Header, std::string>
 HttpParser::parseHeaderLine(const std::string &line) {
   size_t colon_pos = line.find(':');
 

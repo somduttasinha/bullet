@@ -19,20 +19,65 @@ enum class GeneralHeader {
   Warning
 }; /// RFC2616, sec 4.5
 
-/// TODO fill this
+enum class ContentCoding {
+  GZip,
+  Compress,
+  Deflate,
+  Identity,
+};
+
 enum class RequestHeader {
-
+  Accept,
+  AcceptCharset,
+  AcceptEncoding,
+  AcceptLanguage,
+  Authorization,
+  Expect,
+  From,
+  Host,
+  IfMatch,
+  IfModifiedSince,
+  IfNoneMatch,
+  IfRange,
+  IfUnmodifiedSince,
+  MaxForwards,
+  ProxyAuthorization,
+  Range,
+  Referer,
+  TE,
+  UserAgen
 };
 
-/// TODO fill this
 enum class ResponseHeader {
-
+  AcceptRanges,
+  Age,
+  ETag,
+  Location,
+  ProxyAuthenticate,
+  RetryAfter,
+  Server,
+  Vary,
+  WWWAuthenticate,
 };
 
-/// Recognised HTTP versions, for now we will only recognise HTTP1x1
+enum class EntityHeader {
+  Allow,
+  ContentEncoding,
+  ContentLanguage,
+  ContentLength,
+  ContentLocation,
+  ContentMD5,
+  ContentRange,
+  ContentType,
+  Expires,
+  LastModified,
+};
+
+using Header =
+    std::variant<GeneralHeader, RequestHeader, ResponseHeader, EntityHeader, std::string>;
+
 enum class HTTPVersion { HTTP1x1 };
 
-/// TODO: include all 4 possible variants given in RFC2616, sec 5.1.2
 using RequestURI = std::string;
 
 struct RequestLine {
@@ -51,6 +96,6 @@ using StartLine = std::variant<RequestLine, StatusLine>;
 
 struct HttpMessage {
   StartLine start_line;
-  std::vector<std::pair<std::string, std::string>> headers; // RFC2616, sec 4.2
+  std::vector<std::pair<Header, std::string>> headers; // RFC2616, sec 4.2
   std::optional<std::string> body;
 };

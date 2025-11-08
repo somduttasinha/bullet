@@ -32,6 +32,6 @@ private:
   Method parseMethod(const std::string &raw);
   HTTPVersion parseVersion(const std::string &version_str);
   StartLine parseStartLine(const std::string &start_line_str);
-  std::pair<std::string, std::string> parseHeaderLine(const std::string &line);
+  std::pair<Header, std::string> parseHeaderLine(const std::string &line);
   std::optional<std::string> parseBody(const std::string &raw);
 };
