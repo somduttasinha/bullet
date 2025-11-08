@@ -13,7 +13,7 @@ public:
   HttpParser(const HttpParser &) = default;
   HttpParser &operator=(HttpParser &&) = default;
   HttpParser &operator=(const HttpParser &) = default;
-  HttpMessage parse(const std::string &x);
+  HttpRequest parse(const std::string &x);
   ~HttpParser();
 
 private:
@@ -26,12 +26,11 @@ private:
     ERROR
   };
   State state_;
-  HttpMessage message_;
   size_t pos_;
 
   Method parseMethod(const std::string &raw);
   HTTPVersion parseVersion(const std::string &version_str);
-  StartLine parseStartLine(const std::string &start_line_str);
+  void parseRequestLine(const std::string &start_line_str, HttpRequest &request);
   std::pair<Header, std::string> parseHeaderLine(const std::string &line);
   std::optional<std::string> parseBody(const std::string &raw);
 };

@@ -44,10 +44,10 @@ int handle_socket(int epoll_fd, int socket_fd) {
 
   HttpParser parser;
 
-  HttpMessage message =
-      parser.parse(buf);
+  HttpRequest request = parser.parse(buf);
 
-  // printMap(headers);
+  // TODO: Implement proper request handling/routing
+  // For now, just return a hardcoded response
 
   rc = write(socket_fd, PLAIN_HTTP.data(), PLAIN_HTTP.size());
 

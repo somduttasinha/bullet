@@ -73,29 +73,113 @@ enum class EntityHeader {
   LastModified,
 };
 
-using Header =
-    std::variant<GeneralHeader, RequestHeader, ResponseHeader, EntityHeader, std::string>;
+using Header = std::variant<GeneralHeader, RequestHeader, ResponseHeader,
+                            EntityHeader, std::string>;
 
 enum class HTTPVersion { HTTP1x1 };
 
 using RequestURI = std::string;
 
-struct RequestLine {
-  Method method;
-  RequestURI request_uri;
-  HTTPVersion http_version;
+// Helper functions for enum to string conversion
+inline std::string methodToString(Method m) {
+  switch(m) {
+    case Method::GET: return "GET";
+    case Method::POST: return "POST";
+    case Method::PUT: return "PUT";
+    case Method::DELETE: return "DELETE";
+    case Method::HEAD: return "HEAD";
+    case Method::OPTIONS: return "OPTIONS";
+    case Method::TRACE: return "TRACE";
+    case Method::CONNECT: return "CONNECT";
+  }
+  return "UNKNOWN";
+}
+
+inline std::string versionToString(HTTPVersion v) {
+  switch(v) {
+    case HTTPVersion::HTTP1x1: return "HTTP/1.1";
+  }
+  return "HTTP/1.1";
+}
+
+template <typename Derived> class HttpMessage {
+public:
+  std::string getStartLine() const {
+    return static_cast<const Derived *>(this)->getStartLineImpl();
+  }
+
+  void addHeader(const Header &name, const std::string &value) {
+    headers_.push_back({name, value});
+  }
+
+  void addHeader(const std::string &name, const std::string &value) {
+    headers_.push_back({name, value});
+  }
+
+  const std::vector<std::pair<Header, std::string>> &getHeaders() const {
+    return headers_;
+  }
+
+  std::vector<std::pair<Header, std::string>> &getHeaders() { return headers_; }
+
+  void setBody(const std::string &body) { body_ = body; }
+
+  const std::optional<std::string> &getBody() const { return body_; }
+
+  std::optional<std::string> &getBody() { return body_; }
+
+  bool hasBody() const { return body_.has_value(); }
+
+protected:
+  std::vector<std::pair<Header, std::string>> headers_;
+  std::optional<std::string> body_;
 };
 
-struct StatusLine {
-  HTTPVersion http_version;
-  int status_code;
-  std::string reason_phrase;
+class HttpRequest : public HttpMessage<HttpRequest> {
+public:
+  HttpRequest() = default;
+  HttpRequest(Method method, RequestURI uri, HTTPVersion version)
+      : method_(method), request_uri_(uri), http_version_(version) {}
+
+  std::string getStartLineImpl() const;
+
+  Method getMethod() const { return method_; }
+
+  void setMethod(Method method) { method_ = method; }
+
+  const RequestURI &getRequestURI() const { return request_uri_; }
+  void setRequestURI(const RequestURI &uri) { request_uri_ = uri; }
+
+  HTTPVersion getHttpVersion() const { return http_version_; }
+  void setHTTPVersion(HTTPVersion version) { http_version_ = version; }
+
+private:
+  Method method_;
+  RequestURI request_uri_;
+  HTTPVersion http_version_;
 };
 
-using StartLine = std::variant<RequestLine, StatusLine>;
+class HttpResponse : public HttpMessage<HttpResponse> {
+public:
+  HttpResponse() = default;
 
-struct HttpMessage {
-  StartLine start_line;
-  std::vector<std::pair<Header, std::string>> headers; // RFC2616, sec 4.2
-  std::optional<std::string> body;
+  HttpResponse(HTTPVersion version, int status_code, std::string reason_phrase)
+      : http_version_(version), status_code_(status_code),
+        reason_phrase_(std::move(reason_phrase)) {}
+
+  std::string getStartLineImpl() const;
+
+  HTTPVersion getHTTPVersion() const { return http_version_; }
+  void setHTTPVersion(HTTPVersion version) { http_version_ = version; }
+
+  int getStatusCode() const { return status_code_; }
+  void setStatusCode(int code) { status_code_ = code; }
+
+  const std::string &getReasonPhrase() const { return reason_phrase_; }
+  void setReasonPhrase(const std::string &phrase) { reason_phrase_ = phrase; }
+
+private:
+  HTTPVersion http_version_;
+  int status_code_;
+  std::string reason_phrase_;
 };

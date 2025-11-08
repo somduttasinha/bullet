@@ -9,10 +9,10 @@ HttpParser::HttpParser() {}
 
 HttpParser::~HttpParser() {}
 
-HttpMessage HttpParser::parse(const std::string &raw) {
+HttpRequest HttpParser::parse(const std::string &raw) {
   state_ = State::START;
   pos_ = 0;
-  message_ = HttpMessage{};
+  HttpRequest request;
 
   std::string method_str, uri_str, version_str;
 
@@ -30,7 +30,7 @@ HttpMessage HttpParser::parse(const std::string &raw) {
         break;
       }
       auto start_line_raw = raw.substr(pos_, start_line_size - pos_);
-      message_.start_line = parseStartLine(start_line_raw);
+      parseRequestLine(start_line_raw, request);
       pos_ = start_line_size + 2; // because CR LF is two characters
       state_ = State::PARSING_HEADERS;
       break;
@@ -50,7 +50,7 @@ HttpMessage HttpParser::parse(const std::string &raw) {
         headers.push_back(parseHeaderLine(header_line_raw));
         pos_ = header_line_size + 2;
       }
-      message_.headers = headers;
+      request.getHeaders() = headers;
       state_ = State::PARSING_BODY;
       break;
     }
@@ -59,7 +59,9 @@ HttpMessage HttpParser::parse(const std::string &raw) {
       // Body format: <everything-after-headers>\r\n
       if (pos_ < raw.size()) {
         auto body = parseBody(raw.substr(pos_));
-        message_.body = body;
+        if (body.has_value()) {
+          request.setBody(body.value());
+        }
       }
       state_ = State::DONE;
       break;
@@ -71,23 +73,19 @@ HttpMessage HttpParser::parse(const std::string &raw) {
       throw std::runtime_error("Error occurred while parsing message");
     }
   }
-  return message_;
+  return request;
 }
 
-/// Return either a Request-Line or a Status-Line
-/// Request-Line for requests and Status-Line for responses
-///
-/// Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+/// Parse a Request-Line
 /// Request-Line  = Method SP Request-URI SP HTTP-Version CRLF
-StartLine HttpParser::parseStartLine(const std::string &start_line_str) {
-
+void HttpParser::parseRequestLine(const std::string &start_line_str, HttpRequest &request) {
   std::string line = start_line_str.substr(0, start_line_str.size());
 
   size_t first_space = line.find(' ');
   size_t second_space = line.find(' ', first_space + 1);
 
   if (first_space == std::string::npos || second_space == std::string::npos) {
-    throw std::runtime_error("Malformed start line");
+    throw std::runtime_error("Malformed request line");
   }
 
   std::string first_token = line.substr(0, first_space);
@@ -95,22 +93,14 @@ StartLine HttpParser::parseStartLine(const std::string &start_line_str) {
       line.substr(first_space + 1, second_space - first_space - 1);
   std::string third_token = line.substr(second_space + 1);
 
-  if (first_token.find("HTTP/") == 0) {
-    HTTPVersion version = parseVersion(first_token);
-    int status_code = std::stoi(second_token);
-    std::string reason_phrase = third_token;
+  Method method = parseMethod(first_token);
+  std::string uri = second_token;
+  HTTPVersion version = parseVersion(third_token);
 
-    StatusLine status_line{version, status_code, reason_phrase};
-    return status_line;
-  } else {
-    Method method = parseMethod(first_token);
-    std::string uri = second_token;
-    HTTPVersion version = parseVersion(third_token);
-
-    RequestLine request_line{method, uri, version};
-    return request_line;
-  }
-};
+  request.setMethod(method);
+  request.setRequestURI(uri);
+  request.setHTTPVersion(version);
+}
 
 Method HttpParser::parseMethod(const std::string &method_str) {
   if (method_str == "GET")
