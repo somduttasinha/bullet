@@ -15,14 +15,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unordered_map>
-#include "utils/Utils.hpp"
 
 constexpr int PORT = 3232;
 constexpr int BUFFER_SIZE = 1024;
-constexpr int POOL_SIZE = 10;
-constexpr const std::string_view WELCOME_MESSAGE = "Hello!\n";
-constexpr const std::string_view GOODBYE_MESSAGE = "Bye!";
 constexpr const std::string_view PLAIN_HTTP =
     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: "
     "close\r\n\r\nHello "
