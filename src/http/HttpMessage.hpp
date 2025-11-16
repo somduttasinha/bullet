@@ -3,21 +3,20 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <variant>
 #include <vector>
 
 enum class Method { OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT };
-enum class GeneralHeader {
-  CacheControl,
-  Connection,
-  Date,
-  Pragma,
-  Trailer,
-  TransferEncoding,
-  Upgrade,
-  Via,
-  Warning
-}; /// RFC2616, sec 4.5
+// enum class GeneralHeader {
+//   CacheControl,
+//   Connection,
+//   Date,
+//   Pragma,
+//   Trailer,
+//   TransferEncoding,
+//   Upgrade,
+//   Via,
+//   Warning
+// }; /// RFC2616, sec 4.5
 
 enum class ContentCoding {
   GZip,
@@ -26,55 +25,64 @@ enum class ContentCoding {
   Identity,
 };
 
-enum class RequestHeader {
-  Accept,
-  AcceptCharset,
-  AcceptEncoding,
-  AcceptLanguage,
-  Authorization,
-  Expect,
-  From,
-  Host,
-  IfMatch,
-  IfModifiedSince,
-  IfNoneMatch,
-  IfRange,
-  IfUnmodifiedSince,
-  MaxForwards,
-  ProxyAuthorization,
-  Range,
-  Referer,
-  TE,
-  UserAgen
-};
+// enum class RequestHeader {
+//   Accept,
+//   AcceptCharset,
+//   AcceptEncoding,
+//   AcceptLanguage,
+//   Authorization,
+//   Expect,
+//   From,
+//   Host,
+//   IfMatch,
+//   IfModifiedSince,
+//   IfNoneMatch,
+//   IfRange,
+//   IfUnmodifiedSince,
+//   MaxForwards,
+//   ProxyAuthorization,
+//   Range,
+//   Referer,
+//   TE,
+//   UserAgen
+// };
 
-enum class ResponseHeader {
-  AcceptRanges,
-  Age,
-  ETag,
-  Location,
-  ProxyAuthenticate,
-  RetryAfter,
-  Server,
-  Vary,
-  WWWAuthenticate,
-};
+// enum class ResponseHeader {
+//   AcceptRanges,
+//   Age,
+//   ETag,
+//   Location,
+//   ProxyAuthenticate,
+//   RetryAfter,
+//   Server,
+//   Vary,
+//   WWWAuthenticate,
+// };
+//
+// enum class EntityHeader {
+//   Allow,
+//   ContentEncoding,
+//   ContentLanguage,
+//   ContentLength,
+//   ContentLocation,
+//   ContentMD5,
+//   ContentRange,
+//   ContentType,
+//   Expires,
+//   LastModified,
+// };
 
-enum class EntityHeader {
-  Allow,
-  ContentEncoding,
-  ContentLanguage,
-  ContentLength,
-  ContentLocation,
-  ContentMD5,
-  ContentRange,
-  ContentType,
-  Expires,
-  LastModified,
-};
+// using HeaderKey = std::variant<GeneralHeader, RequestHeader, ResponseHeader,
+//                                EntityHeader, std::string>;
 
-using Header = std::variant<GeneralHeader, RequestHeader, ResponseHeader,
-                            EntityHeader, std::string>;
+struct Header {
+  const std::string k_;
+  const std::string v_;
+
+  Header(std::string k, std::string v) : k_(k), v_(v) {};
+
+  std::string toString() const { return k_ + ": " + v_; }
+};
 
 enum class HTTPVersion { HTTP1x1 };
 
@@ -82,22 +90,31 @@ using RequestURI = std::string;
 
 // Helper functions for enum to string conversion
 inline std::string methodToString(Method m) {
-  switch(m) {
-    case Method::GET: return "GET";
-    case Method::POST: return "POST";
-    case Method::PUT: return "PUT";
-    case Method::DELETE: return "DELETE";
-    case Method::HEAD: return "HEAD";
-    case Method::OPTIONS: return "OPTIONS";
-    case Method::TRACE: return "TRACE";
-    case Method::CONNECT: return "CONNECT";
+  switch (m) {
+  case Method::GET:
+    return "GET";
+  case Method::POST:
+    return "POST";
+  case Method::PUT:
+    return "PUT";
+  case Method::DELETE:
+    return "DELETE";
+  case Method::HEAD:
+    return "HEAD";
+  case Method::OPTIONS:
+    return "OPTIONS";
+  case Method::TRACE:
+    return "TRACE";
+  case Method::CONNECT:
+    return "CONNECT";
   }
   return "UNKNOWN";
 }
 
 inline std::string versionToString(HTTPVersion v) {
-  switch(v) {
-    case HTTPVersion::HTTP1x1: return "HTTP/1.1";
+  switch (v) {
+  case HTTPVersion::HTTP1x1:
+    return "HTTP/1.1";
   }
   return "HTTP/1.1";
 }
@@ -108,30 +125,21 @@ public:
     return static_cast<const Derived *>(this)->getStartLineImpl();
   }
 
-  void addHeader(const Header &name, const std::string &value) {
-    headers_.push_back({name, value});
-  }
-
   void addHeader(const std::string &name, const std::string &value) {
-    headers_.push_back({name, value});
+    headers_.push_back(Header(name, value));
   }
+  void addHeader(const Header header) { headers_.push_back(header); }
 
-  const std::vector<std::pair<Header, std::string>> &getHeaders() const {
-    return headers_;
-  }
-
-  std::vector<std::pair<Header, std::string>> &getHeaders() { return headers_; }
+  const std::vector<Header> &getHeaders() const { return headers_; }
 
   void setBody(const std::string &body) { body_ = body; }
 
   const std::optional<std::string> &getBody() const { return body_; }
 
-  std::optional<std::string> &getBody() { return body_; }
-
   bool hasBody() const { return body_.has_value(); }
 
 protected:
-  std::vector<std::pair<Header, std::string>> headers_;
+  std::vector<Header> headers_;
   std::optional<std::string> body_;
 };
 
@@ -177,6 +185,8 @@ public:
 
   const std::string &getReasonPhrase() const { return reason_phrase_; }
   void setReasonPhrase(const std::string &phrase) { reason_phrase_ = phrase; }
+
+  std::string toString() const;
 
 private:
   HTTPVersion http_version_;

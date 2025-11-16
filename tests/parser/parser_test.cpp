@@ -33,12 +33,12 @@ TEST(HttpParserTest, ParseGetRequestWithHeaders) {
   EXPECT_EQ(req.getHttpVersion(), HTTPVersion::HTTP1x1);
 
   ASSERT_EQ(req.getHeaders().size(), 3);
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Host");
-  EXPECT_EQ(req.getHeaders()[0].second, "example.com");
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "User-Agent");
-  EXPECT_EQ(req.getHeaders()[1].second, "Mozilla/5.0");
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[2].first), "Accept");
-  EXPECT_EQ(req.getHeaders()[2].second, "application/json");
+  EXPECT_EQ((req.getHeaders()[0].k_), "Host");
+  EXPECT_EQ(req.getHeaders()[0].v_, "example.com");
+  EXPECT_EQ((req.getHeaders()[1].k_), "User-Agent");
+  EXPECT_EQ(req.getHeaders()[1].v_, "Mozilla/5.0");
+  EXPECT_EQ((req.getHeaders()[2].v_), "Accept");
+  EXPECT_EQ(req.getHeaders()[2].v_, "application/json");
 }
 
 // Test POST request with body
@@ -92,10 +92,10 @@ TEST(HttpParserTest, ParseHeaderWithWhitespace) {
   HttpRequest req = parser.parse(raw);
 
   ASSERT_EQ(req.getHeaders().size(), 2);
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Host");
-  EXPECT_EQ(req.getHeaders()[0].second, "example.com");
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "Accept");
-  EXPECT_EQ(req.getHeaders()[1].second, "application/json");
+  EXPECT_EQ(req.getHeaders()[0].k_, "Host");
+  EXPECT_EQ(req.getHeaders()[0].v_, "example.com");
+  EXPECT_EQ((req.getHeaders()[1].v_), "Accept");
+  EXPECT_EQ(req.getHeaders()[1].v_, "application/json");
 }
 
 // Test duplicate headers (e.g., Cookie)
@@ -110,12 +110,12 @@ TEST(HttpParserTest, ParseDuplicateHeaders) {
   HttpRequest req = parser.parse(raw);
 
   ASSERT_EQ(req.getHeaders().size(), 3);
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[0].first), "Cookie");
-  EXPECT_EQ(req.getHeaders()[0].second, "session=abc");
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[1].first), "Cookie");
-  EXPECT_EQ(req.getHeaders()[1].second, "user=xyz");
-  EXPECT_EQ(std::get<std::string>(req.getHeaders()[2].first), "Cookie");
-  EXPECT_EQ(req.getHeaders()[2].second, "token=123");
+  EXPECT_EQ((req.getHeaders()[0].v_), "Cookie");
+  EXPECT_EQ(req.getHeaders()[0].v_, "session=abc");
+  EXPECT_EQ((req.getHeaders()[1].v_), "Cookie");
+  EXPECT_EQ(req.getHeaders()[1].v_, "user=xyz");
+  EXPECT_EQ((req.getHeaders()[2].v_), "Cookie");
+  EXPECT_EQ(req.getHeaders()[2].v_, "token=123");
 }
 
 // Test different URI formats

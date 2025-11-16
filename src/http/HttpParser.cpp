@@ -3,7 +3,6 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 HttpParser::HttpParser() {}
 
@@ -36,8 +35,6 @@ HttpRequest HttpParser::parse(const std::string &raw) {
       break;
     }
     case State::PARSING_HEADERS: {
-      auto headers = std::vector<std::pair<Header, std::string>>();
-      // we need to keep going until we find two consecutive CRLFs
       while (true) {
         size_t header_line_size = raw.find(CRLF, pos_);
         std::string header_line_raw = raw.substr(pos_, header_line_size - pos_);
@@ -47,10 +44,9 @@ HttpRequest HttpParser::parse(const std::string &raw) {
           break;
         }
 
-        headers.push_back(parseHeaderLine(header_line_raw));
+        request.addHeader(parseHeaderLine(header_line_raw));
         pos_ = header_line_size + 2;
       }
-      request.getHeaders() = headers;
       state_ = State::PARSING_BODY;
       break;
     }
@@ -78,7 +74,8 @@ HttpRequest HttpParser::parse(const std::string &raw) {
 
 /// Parse a Request-Line
 /// Request-Line  = Method SP Request-URI SP HTTP-Version CRLF
-void HttpParser::parseRequestLine(const std::string &start_line_str, HttpRequest &request) {
+void HttpParser::parseRequestLine(const std::string &start_line_str,
+                                  HttpRequest &request) {
   std::string line = start_line_str.substr(0, start_line_str.size());
 
   size_t first_space = line.find(' ');
@@ -138,8 +135,7 @@ HTTPVersion HttpParser::parseVersion(const std::string &version_str) {
 /// LWS            = [CRLF] 1*( SP | HT )
 /// SP             = <US-ASCII SP, space (32)>
 /// HT             = <US-ASCII HT, horizontal-tab (9)>
-std::pair<Header, std::string>
-HttpParser::parseHeaderLine(const std::string &line) {
+Header HttpParser::parseHeaderLine(const std::string &line) {
   size_t colon_pos = line.find(':');
 
   if (colon_pos == std::string::npos) {

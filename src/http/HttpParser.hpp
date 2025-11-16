@@ -2,7 +2,6 @@
 
 #include "HttpMessage.hpp"
 #include <string>
-#include <utility>
 
 const std::string CRLF = "\r\n";
 
@@ -30,7 +29,8 @@ private:
 
   Method parseMethod(const std::string &raw);
   HTTPVersion parseVersion(const std::string &version_str);
-  void parseRequestLine(const std::string &start_line_str, HttpRequest &request);
-  std::pair<Header, std::string> parseHeaderLine(const std::string &line);
+  void parseRequestLine(const std::string &start_line_str,
+                        HttpRequest &request);
+  Header parseHeaderLine(const std::string &line);
   std::optional<std::string> parseBody(const std::string &raw);
 };
