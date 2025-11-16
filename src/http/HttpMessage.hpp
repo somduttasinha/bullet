@@ -6,17 +6,6 @@
 #include <vector>
 
 enum class Method { OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT };
-// enum class GeneralHeader {
-//   CacheControl,
-//   Connection,
-//   Date,
-//   Pragma,
-//   Trailer,
-//   TransferEncoding,
-//   Upgrade,
-//   Via,
-//   Warning
-// }; /// RFC2616, sec 4.5
 
 enum class ContentCoding {
   GZip,
@@ -24,56 +13,6 @@ enum class ContentCoding {
   Deflate,
   Identity,
 };
-
-// enum class RequestHeader {
-//   Accept,
-//   AcceptCharset,
-//   AcceptEncoding,
-//   AcceptLanguage,
-//   Authorization,
-//   Expect,
-//   From,
-//   Host,
-//   IfMatch,
-//   IfModifiedSince,
-//   IfNoneMatch,
-//   IfRange,
-//   IfUnmodifiedSince,
-//   MaxForwards,
-//   ProxyAuthorization,
-//   Range,
-//   Referer,
-//   TE,
-//   UserAgen
-// };
-
-// enum class ResponseHeader {
-//   AcceptRanges,
-//   Age,
-//   ETag,
-//   Location,
-//   ProxyAuthenticate,
-//   RetryAfter,
-//   Server,
-//   Vary,
-//   WWWAuthenticate,
-// };
-//
-// enum class EntityHeader {
-//   Allow,
-//   ContentEncoding,
-//   ContentLanguage,
-//   ContentLength,
-//   ContentLocation,
-//   ContentMD5,
-//   ContentRange,
-//   ContentType,
-//   Expires,
-//   LastModified,
-// };
-
-// using HeaderKey = std::variant<GeneralHeader, RequestHeader, ResponseHeader,
-//                                EntityHeader, std::string>;
 
 struct Header {
   const std::string k_;
