@@ -1,3 +1,4 @@
+#include "actor/actor.hpp"
 #include "http/HttpMessage.hpp"
 #include "http/HttpParser.hpp"
 #include <arpa/inet.h>
@@ -10,7 +11,6 @@
 #include <netinet/in.h>
 #include <ostream>
 #include <string>
-#include <string_view>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -18,10 +18,7 @@
 
 constexpr int PORT = 3232;
 constexpr int BUFFER_SIZE = 1024;
-constexpr const std::string_view PLAIN_HTTP =
-    "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: "
-    "close\r\n\r\nHello "
-    "from som\n";
+
 constexpr const int MAX_EVENTS = 10;
 
 [[noreturn]] void handle_error(const char *msg) {
@@ -46,10 +43,14 @@ int handle_socket(int epoll_fd, int socket_fd) {
 
   HttpRequest request = parser.parse(buf);
 
+  HttpResponse response = act(request);
+
+  std::basic_string response_str = response.toString();
+
   // TODO: Implement proper request handling/routing
   // For now, just return a hardcoded response
 
-  rc = write(socket_fd, PLAIN_HTTP.data(), PLAIN_HTTP.size());
+  rc = write(socket_fd, response_str.data(), response_str.size());
 
   if (rc == -1) {
     handle_error("Issue with writing to socket");
@@ -72,11 +73,11 @@ int handle_socket(int epoll_fd, int socket_fd) {
 }
 
 /**
-* Converts a socket to non-blocking mode.
-*
-* @param sock Socket file descriptor
-* @return The file access mode
-*/
+ * Converts a socket to non-blocking mode.
+ *
+ * @param sock Socket file descriptor
+ * @return The file access mode
+ */
 int setnonblocking(int sock) {
   int result;
   int flags;
