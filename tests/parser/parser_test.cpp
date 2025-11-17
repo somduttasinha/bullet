@@ -37,7 +37,7 @@ TEST(HttpParserTest, ParseGetRequestWithHeaders) {
   EXPECT_EQ(req.getHeaders()[0].v_, "example.com");
   EXPECT_EQ((req.getHeaders()[1].k_), "User-Agent");
   EXPECT_EQ(req.getHeaders()[1].v_, "Mozilla/5.0");
-  EXPECT_EQ((req.getHeaders()[2].v_), "Accept");
+  EXPECT_EQ((req.getHeaders()[2].k_), "Accept");
   EXPECT_EQ(req.getHeaders()[2].v_, "application/json");
 }
 
@@ -94,7 +94,7 @@ TEST(HttpParserTest, ParseHeaderWithWhitespace) {
   ASSERT_EQ(req.getHeaders().size(), 2);
   EXPECT_EQ(req.getHeaders()[0].k_, "Host");
   EXPECT_EQ(req.getHeaders()[0].v_, "example.com");
-  EXPECT_EQ((req.getHeaders()[1].v_), "Accept");
+  EXPECT_EQ((req.getHeaders()[1].k_), "Accept");
   EXPECT_EQ(req.getHeaders()[1].v_, "application/json");
 }
 
@@ -110,11 +110,11 @@ TEST(HttpParserTest, ParseDuplicateHeaders) {
   HttpRequest req = parser.parse(raw);
 
   ASSERT_EQ(req.getHeaders().size(), 3);
-  EXPECT_EQ((req.getHeaders()[0].v_), "Cookie");
+  EXPECT_EQ((req.getHeaders()[0].k_), "Cookie");
   EXPECT_EQ(req.getHeaders()[0].v_, "session=abc");
-  EXPECT_EQ((req.getHeaders()[1].v_), "Cookie");
+  EXPECT_EQ((req.getHeaders()[1].k_), "Cookie");
   EXPECT_EQ(req.getHeaders()[1].v_, "user=xyz");
-  EXPECT_EQ((req.getHeaders()[2].v_), "Cookie");
+  EXPECT_EQ((req.getHeaders()[2].k_), "Cookie");
   EXPECT_EQ(req.getHeaders()[2].v_, "token=123");
 }
 
