@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
 #include <netinet/in.h>
 #include <ostream>
@@ -47,14 +48,12 @@ int handle_socket(int epoll_fd, int socket_fd) {
 
   std::basic_string response_str = response.toString();
 
-  // TODO: Implement proper request handling/routing
-  // For now, just return a hardcoded response
-
   rc = write(socket_fd, response_str.data(), response_str.size());
 
   if (rc == -1) {
     handle_error("Issue with writing to socket");
   }
+
   std::cout << "Terminating connection from our side" << std::endl;
   rc = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
   if (rc == -1) {
@@ -96,10 +95,26 @@ int setnonblocking(int sock) {
 
 int main(int argc, char *argv[]) {
   // we need to bind to a socket
+
+  if (argc < 2) {
+    return 1;
+  }
+
+  auto dir_name = argv[1];
+
+  const auto path = std::filesystem::directory_entry(dir_name);
+  const auto &dir_iterator =
+      std::filesystem::recursive_directory_iterator(path);
+
+  // index all entries?
+
+  for (const std::filesystem::directory_entry &dir_entry : dir_iterator) {
+    std::cout << dir_entry << std::endl;
+  }
+
   struct sockaddr_in serverSa;
   struct sockaddr_in clientSa;
 
-  // variables for setting up the socket
   int rc;
   socklen_t clientSaSize = sizeof(clientSa);
   int on = 1;
@@ -162,8 +177,7 @@ int main(int argc, char *argv[]) {
 
   // main function loop
   while (1) {
-    nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1); // returns the number
-    // of file descriptors available and populates these in the events array
+    nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
 
     if (nfds == -1) {
       handle_error("epoll_wait error");
@@ -175,7 +189,6 @@ int main(int argc, char *argv[]) {
             accept(listen_sock, (struct sockaddr *)&clientSa, &clientSaSize);
         printf("Client address: %s:%d\n", inet_ntoa(clientSa.sin_addr),
                clientSa.sin_port); // print the client address
-        // rc = write(conn_sock, WELCOME_MESSAGE, strlen(WELCOME_MESSAGE));
 
         if (conn_sock < 0) {
           perror("accept failed");
