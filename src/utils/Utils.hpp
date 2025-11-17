@@ -14,6 +14,7 @@ inline std::string join(const std::vector<T> &v, const std::string &separator) {
   }
   return joined;
 }
+
 inline std::string itomonth(int mon) {
   std::string month;
   switch (mon) {
@@ -125,6 +126,6 @@ inline std::string date() {
   int sec = tm.tm_sec;
   auto tz = tm.tm_zone;
 
-  return fmt::format(fmt::runtime("{}, {:2d} {} {} {:2d}:{:2d}:{:2d} {}"), day,
-                     mday, mon, year, hour, min, sec, tz);
+  return fmt::format(fmt::runtime("{}, {:02d} {} {} {:02d}:{:02d}:{:02d} {}"),
+                     day, mday, mon, year, hour, min, sec, tz);
 }
