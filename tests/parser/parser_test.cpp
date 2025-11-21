@@ -59,7 +59,8 @@ TEST(HttpParserTest, ParsePostRequestWithBody) {
   ASSERT_EQ(req.getHeaders().size(), 3);
 
   ASSERT_TRUE(req.hasBody());
-  EXPECT_EQ(req.getBody().value(), "{\"user\":\"test\",\"pass\":\"123\"}");
+  std::string b(req.getBody().value().begin(), req.getBody().value().end());
+  EXPECT_EQ(b, "{\"user\":\"test\",\"pass\":\"123\"}");
 }
 
 // Test all HTTP methods

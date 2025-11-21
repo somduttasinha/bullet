@@ -1,7 +1,9 @@
 #pragma once
 
 #include "HttpMessage.hpp"
+#include <cstdint>
 #include <string>
+#include <vector>
 
 const std::string CRLF = "\r\n";
 
@@ -32,5 +34,5 @@ private:
   void parseRequestLine(const std::string &start_line_str,
                         HttpRequest &request);
   Header parseHeaderLine(const std::string &line);
-  std::optional<std::string> parseBody(const std::string &raw);
+  std::optional<std::vector<uint8_t>> parseBody(const std::string &raw);
 };

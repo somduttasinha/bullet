@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <sys/types.h>
 #include <utility>
 #include <vector>
 
@@ -71,15 +73,15 @@ public:
 
   const std::vector<Header> &getHeaders() const { return headers_; }
 
-  void setBody(const std::string &body) { body_ = body; }
+  void setBody(const std::vector<uint8_t> &body) { body_ = body; }
 
-  const std::optional<std::string> &getBody() const { return body_; }
+  const std::optional<std::vector<uint8_t>> &getBody() const { return body_; }
 
   bool hasBody() const { return body_.has_value(); }
 
 protected:
   std::vector<Header> headers_;
-  std::optional<std::string> body_;
+  std::optional<std::vector<uint8_t>> body_;
 };
 
 class HttpRequest : public HttpMessage<HttpRequest> {
@@ -125,7 +127,7 @@ public:
   const std::string &getReasonPhrase() const { return reason_phrase_; }
   void setReasonPhrase(const std::string &phrase) { reason_phrase_ = phrase; }
 
-  std::string toString() const;
+  std::vector<uint8_t> get() const;
 
 private:
   HTTPVersion http_version_;

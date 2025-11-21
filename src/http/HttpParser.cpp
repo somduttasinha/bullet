@@ -1,8 +1,11 @@
 #include "HttpParser.hpp"
 #include "HttpMessage.hpp"
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <sys/types.h>
+#include <vector>
 
 HttpParser::HttpParser() {}
 
@@ -160,8 +163,10 @@ Header HttpParser::parseHeaderLine(const std::string &line) {
   return {field_name, field_value};
 }
 
-std::optional<std::string> HttpParser::parseBody(const std::string &raw) {
+std::optional<std::vector<uint8_t>>
+HttpParser::parseBody(const std::string &raw) {
   if (raw.empty())
     return std::nullopt;
-  return raw;
+  std::vector<uint8_t> data(raw.begin(), raw.end());
+  return std::optional(data);
 }

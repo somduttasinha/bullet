@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unordered_set>
 
 constexpr int PORT = 3232;
 constexpr int BUFFER_SIZE = 1024;
@@ -46,9 +47,9 @@ int handle_socket(int epoll_fd, int socket_fd) {
 
   HttpResponse response = act(request);
 
-  std::basic_string response_str = response.toString();
+  auto response_bytes = response.get();
 
-  rc = write(socket_fd, response_str.data(), response_str.size());
+  rc = write(socket_fd, response_bytes.data(), response_bytes.size());
 
   if (rc == -1) {
     handle_error("Issue with writing to socket");
@@ -108,8 +109,9 @@ int main(int argc, char *argv[]) {
 
   // index all entries?
 
+  std::unordered_set<std::filesystem::path> entries;
   for (const std::filesystem::directory_entry &dir_entry : dir_iterator) {
-    std::cout << dir_entry << std::endl;
+    entries.insert(dir_entry.path());
   }
 
   struct sockaddr_in serverSa;

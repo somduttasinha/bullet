@@ -1,6 +1,8 @@
 #include "HttpMessage.hpp"
 #include "HttpParser.hpp"
 #include "Utils.hpp"
+#include <cstdint>
+#include <vector>
 
 std::string HttpRequest::getStartLineImpl() const {
   return methodToString(method_) + " " + request_uri_ + " " +
@@ -12,8 +14,12 @@ std::string HttpResponse::getStartLineImpl() const {
          " " + reason_phrase_;
 }
 
-std::string HttpResponse::toString() const {
-  auto raw = this->getStartLineImpl() + CRLF + join(this->headers_, CRLF) +
-             CRLF + this->getBody().value_or("<h1>Hello World<h1>");
-  return raw;
+std::vector<uint8_t> HttpResponse::get() const {
+  auto raw =
+      this->getStartLineImpl() + CRLF + join(this->headers_, CRLF) + CRLF;
+  std::vector<uint8_t> response(raw.begin(), raw.end());
+
+  auto b = this->getBody().value_or(std::vector<uint8_t>());
+  response.insert(response.end(), b.begin(), b.end());
+  return response;
 }
