@@ -15,12 +15,17 @@ find_package(fmt REQUIRED)
 
 add_compile_options(-Wall -Werror)
 
+# Debug flags for GDB
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-g -O0)  # -g: debug symbols, -O0: no optimization
+endif()
+
 # Create a library with all non-main source files
 add_library(bullet_lib
     src/http/HttpParser.cpp
     src/http/HttpMessage.cpp
     src/actor/actor.cpp
-    # Add more .cpp files here as your project grows
+    src/actor/get.cpp
 )
 
 target_include_directories(bullet_lib PUBLIC
